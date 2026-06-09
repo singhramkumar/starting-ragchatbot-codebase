@@ -84,7 +84,7 @@ Provide only the direct answer to what was asked.
             return self._handle_tool_execution(response, api_params, tool_manager)
         
         # Return direct response
-        return response.content[0].text
+        return self._extract_text(response)
     
     def _handle_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager):
         """
@@ -132,4 +132,20 @@ Provide only the direct answer to what was asked.
         
         # Get final response
         final_response = self.client.messages.create(**final_params)
-        return final_response.content[0].text
+        return self._extract_text(final_response)
+
+    @staticmethod
+    def _extract_text(response) -> str:
+        """Return the first text block's text from a response.
+
+        Claude can return a response with no text block (e.g. an empty
+        content list, or only a tool_use block), so indexing content[0]
+        directly risks an IndexError. Fall back to a clear message instead.
+        """
+        for block in response.content:
+            if getattr(block, "type", None) == "text":
+                return block.text
+        return (
+            "I couldn't generate an answer for that question. "
+            "Please try rephrasing it."
+        )

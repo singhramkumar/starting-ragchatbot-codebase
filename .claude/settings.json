@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://localhost:8000/api/query -H 'Content-Type: application/json' -d '{\"message\": \"What courses are available?\"}')",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:8000/api/query -H \"Content-Type: application/json\" -d '{\"message\": \"What courses are available?\"}')",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 46884 /F)",
+      "Bash(taskkill /PID 56068 /F)",
+      "Bash(taskkill /PID 64672 /F)",
+      "Bash(taskkill /PID 80492 /F)",
+      "Bash(taskkill /PID 68228 /F)"
+    ]
+  }
+}

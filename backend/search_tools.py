@@ -110,8 +110,71 @@ class CourseSearchTool(Tool):
         
         # Store sources for retrieval
         self.last_sources = sources
-        
+
         return "\n\n".join(formatted)
+
+
+class CourseOutlineTool(Tool):
+    """Tool for returning a course's outline: title, link, and full lesson list."""
+
+    def __init__(self, vector_store: VectorStore):
+        self.store = vector_store
+        self.last_sources = []  # Track sources for the UI
+
+    def get_tool_definition(self) -> Dict[str, Any]:
+        """Return Anthropic tool definition for this tool"""
+        return {
+            "name": "get_course_outline",
+            "description": (
+                "Get the outline of a course: its title, course link, and the "
+                "complete numbered list of lessons. Use this for any question "
+                "about a course's outline, structure, syllabus, or which "
+                "lessons/topics it covers — not for searching lesson content."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "course_name": {
+                        "type": "string",
+                        "description": "Course title (partial matches work, e.g. 'MCP', 'Introduction')"
+                    }
+                },
+                "required": ["course_name"]
+            }
+        }
+
+    def execute(self, course_name: str) -> str:
+        """Resolve the course and return its outline (title, link, lessons)."""
+        # Resolve a possibly-partial name to the exact course title
+        title = self.store._resolve_course_name(course_name)
+        if not title:
+            return f"No course found matching '{course_name}'."
+
+        # Locate the resolved course's metadata
+        meta = next(
+            (m for m in self.store.get_all_courses_metadata() if m.get("title") == title),
+            None,
+        )
+        if not meta:
+            return f"No outline available for course '{title}'."
+
+        lines = [f"Course: {title}"]
+        if meta.get("course_link"):
+            lines.append(f"Course Link: {meta['course_link']}")
+        if meta.get("instructor"):
+            lines.append(f"Instructor: {meta['instructor']}")
+
+        lessons = sorted(
+            meta.get("lessons", []),
+            key=lambda lesson: lesson.get("lesson_number", 0),
+        )
+        lines.append(f"\nLessons ({len(lessons)}):")
+        for lesson in lessons:
+            lines.append(f"  {lesson.get('lesson_number')}. {lesson.get('lesson_title', '')}")
+
+        self.last_sources = [title]
+        return "\n".join(lines)
+
 
 class ToolManager:
     """Manages available tools for the AI"""
